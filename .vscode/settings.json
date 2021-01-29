@@ -1,0 +1,15 @@
+{
+    "go.lintTool": "golangci-lint",
+    "go.lintFlags": [
+        "--exclude=\"\bexported \\w+ (\\S*['.]*)([a-zA-Z'.*]*) should have comment or be unexported\b\""
+    ],
+    "go.testOnSave": true,
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/CVS": true,
+        "**/.DS_Store": true,
+        "**/bin": true
+    }
+}
