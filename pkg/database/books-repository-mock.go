@@ -23,3 +23,14 @@ func (m *BooksRepositoryMock) GetAll(r GetAllRequest) []domain.Book {
 
 	return bb
 }
+
+func (m *BooksRepositoryMock) GetBook(id int) (domain.Book, error) {
+	args := m.Called(id)
+	bb, ok := args.Get(0).(domain.Book)
+
+	if !ok {
+		bb = domain.Book{}
+	}
+
+	return bb, args.Error(1)
+}

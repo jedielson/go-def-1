@@ -237,3 +237,7 @@ bin/*
 
 # .env file
 .env
+
+# coverage
+coverage.html
+coverage.out

@@ -3,12 +3,12 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gorilla/mux"
 	"github.com/jedielson/bookstore/pkg/database"
 	"github.com/jedielson/bookstore/pkg/domain"
 	"github.com/stretchr/testify/mock"
@@ -18,7 +18,8 @@ import (
 type AuthorsApiHandlerSuite struct {
 	suite.Suite
 
-	ctx context.Context
+	ctx    context.Context
+	router *mux.Router
 
 	req *http.Request
 	res *httptest.ResponseRecorder
@@ -30,6 +31,18 @@ func (s *AuthorsApiHandlerSuite) SetupTest() {
 	s.ctx = context.Background()
 	s.repo = database.NewAuthorsRepositoryMock()
 	s.res = httptest.NewRecorder()
+	s.router = mux.NewRouter()
+	NewAuthorsApi(s.router, s.repo)
+}
+
+func (s *AuthorsApiHandlerSuite) TestIfUrlInvalidShouldReturn404() {
+	s.req = httptest.NewRequest(http.MethodGet, "/autors", nil)
+
+	// act
+	s.router.ServeHTTP(s.res, s.req)
+
+	// assert
+	s.Assert().Equal(http.StatusNotFound, s.res.Code)
 }
 
 func (s *AuthorsApiHandlerSuite) TestShouldReturn200IfReturnedNil() {
@@ -42,11 +55,12 @@ func (s *AuthorsApiHandlerSuite) TestShouldReturn200IfReturnedNil() {
 	s.req = httptest.NewRequest(http.MethodGet, "/authors", nil)
 
 	// act
-	GetAuthors(s.repo)(s.res, s.req)
+	s.router.ServeHTTP(s.res, s.req)
 
 	// assert
 	result := string(s.res.Body.String())
 
+	s.repo.AssertExpectations(s.T())
 	s.Assert().Equal(http.StatusOK, s.res.Code)
 	s.Assert().JSONEq("[]", result)
 }
@@ -61,11 +75,12 @@ func (s *AuthorsApiHandlerSuite) TestShouldReturn200IfNotReturnedData() {
 	s.req = httptest.NewRequest(http.MethodGet, "/authors", nil)
 
 	// act
-	GetAuthors(s.repo)(s.res, s.req)
+	s.router.ServeHTTP(s.res, s.req)
 
 	// assert
 	result := string(s.res.Body.String())
 
+	s.repo.AssertExpectations(s.T())
 	s.Assert().Equal(http.StatusOK, s.res.Code)
 	s.Assert().JSONEq("[]", result)
 }
@@ -87,7 +102,7 @@ func (s *AuthorsApiHandlerSuite) TestShouldReturn200IfReturnedData() {
 	s.req = httptest.NewRequest(http.MethodGet, "/authors", nil)
 
 	// act
-	GetAuthors(s.repo)(s.res, s.req)
+	s.router.ServeHTTP(s.res, s.req)
 
 	// assert
 	var result []domain.Author
@@ -96,105 +111,9 @@ func (s *AuthorsApiHandlerSuite) TestShouldReturn200IfReturnedData() {
 		log.Fatal(err)
 	}
 
+	s.repo.AssertExpectations(s.T())
 	s.Assert().Equal(http.StatusOK, s.res.Code)
 	s.Assert().Equal(authors, result)
-}
-
-// se o nome não for informado, não deve ser usado como filtro
-// se o nome for informado, deve ser usado como filtro
-var testsNome = []struct {
-	nome     string
-	expected string
-}{
-	{
-		nome:     "",
-		expected: "",
-	},
-	{
-		nome:     "name=myname",
-		expected: "myname",
-	},
-}
-
-func (s *AuthorsApiHandlerSuite) TestNameQuery() {
-	for _, n := range testsNome {
-		s.req = httptest.NewRequest(http.MethodGet, fmt.Sprintf("/authors?%s", n.nome), nil)
-		nome, _, _ := parseUrl(s.req)
-		s.Assert().Equal(n.expected, nome)
-	}
-}
-
-// se o limit não for informado, deve ser usado 1000
-// se o limit não for numero deve ser usado 1000
-// se o limit for maior que 1000, deve ser usado 1000
-// se o limit for < 0 deve ser usado 1000
-// se o limit for > 0 e < 1000 deve ser usado limit
-var testsLimit = []struct {
-	limit    string
-	expected int
-}{
-	{
-		limit:    "",
-		expected: 1000,
-	},
-	{
-		limit:    "limit=notANumber&&",
-		expected: 1000,
-	},
-	{
-		limit:    "limit=5000",
-		expected: 1000,
-	},
-	{
-		limit:    "limit=-1",
-		expected: 1000,
-	},
-	{
-		limit:    "limit=10",
-		expected: 10,
-	},
-}
-
-func (s *AuthorsApiHandlerSuite) TestLimitQuery() {
-	for _, n := range testsLimit {
-		s.req = httptest.NewRequest(http.MethodGet, fmt.Sprintf("/authors?%s", n.limit), nil)
-		_, _, limit := parseUrl(s.req)
-		s.Assert().Equal(n.expected, limit)
-	}
-}
-
-// se o offset não for informado, deve ser usado 0
-// se o offset não for numero, deve ser usado 0
-// se o offset for < 0 deve ser usado 0
-// se o offset for > 0 deve ser usado offset
-var testsOffset = []struct {
-	offset   string
-	expected int
-}{
-	{
-		offset:   "",
-		expected: 0,
-	},
-	{
-		offset:   "offset=notANumber&&",
-		expected: 0,
-	},
-	{
-		offset:   "offset=-1",
-		expected: 0,
-	},
-	{
-		offset:   "offset=10",
-		expected: 10,
-	},
-}
-
-func (s *AuthorsApiHandlerSuite) TestOffsetQuery() {
-	for _, n := range testsOffset {
-		s.req = httptest.NewRequest(http.MethodGet, fmt.Sprintf("/authors?%s", n.offset), nil)
-		_, offset, _ := parseUrl(s.req)
-		s.Assert().Equal(n.expected, offset)
-	}
 }
 
 func TestAuthorsApiHandlerSuite(t *testing.T) {

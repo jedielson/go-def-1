@@ -16,6 +16,7 @@ func Run(c *cli.Context) error {
 	fmt.Printf("Starting api...\n")
 	manager := database.NewDbManager("bookstore.db")
 	authorsRepository := database.NewAuthorsRepository(manager)
+	booksRepository := database.NewBooksRepository(manager)
 
 	err := manager.InitDb()
 	if err != nil {
@@ -30,6 +31,7 @@ func Run(c *cli.Context) error {
 
 	r := mux.NewRouter()
 	api.NewAuthorsApi(r, authorsRepository)
+	api.NewBooksApi(r, booksRepository)
 
 	r.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(200)

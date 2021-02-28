@@ -96,3 +96,9 @@ To create a book you need to send this payload (in json format) below:
     * Brief description of the work environment used to run this project (Computer/operating system, text editor/IDE, libraries, etc).
 * Provide API documentation (in English);
 * Variables, code and strings must be all in English.
+
+## How to
+
+* Run tests recursively
+
+`go test -coverprofile=coverage.out ./... && go tool cover -html=coverage.out`
