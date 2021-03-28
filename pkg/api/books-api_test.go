@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -193,6 +194,225 @@ func (s *BooksApiHandlerSuite) TestGetBookShouldReturn400IfIdIsInvalid() {
 	// assert
 	s.Assert().Equal(http.StatusBadRequest, s.res.Code)
 
+}
+
+func (s *BooksApiHandlerSuite) TestPostBookShouldReturn200() {
+	// arrange
+	s.repo.
+		On("Create", mock.Anything).
+		Return(0, nil)
+
+	var book = domain.Book{
+		Name:            "Ronaldo",
+		Edition:         "1",
+		PublicationYear: 2020,
+	}
+	var jsonBytes, _ = json.Marshal(book)
+	s.req = httptest.NewRequest(http.MethodPost, "/books", bytes.NewBuffer(jsonBytes))
+	s.req.Header.Set("Content-Type", "application/json")
+
+	// act
+	s.router.ServeHTTP(s.res, s.req)
+
+	// assert
+	s.Assert().Equal(http.StatusOK, s.res.Code)
+}
+
+func (s *BooksApiHandlerSuite) TestPostBookShouldReturnIfBodyIsInvalid400() {
+	// arrange
+	s.repo.
+		On("Create", mock.Anything).
+		Return(0, nil)
+
+	s.req = httptest.NewRequest(http.MethodPost, "/books", nil)
+	s.req.Header.Set("Content-Type", "application/json")
+
+	// act
+	s.router.ServeHTTP(s.res, s.req)
+
+	// assert
+	s.Assert().Equal(http.StatusBadRequest, s.res.Code)
+}
+
+func (s *BooksApiHandlerSuite) TestPostBookShouldReturn400IfNotCreate() {
+	// arrange
+	s.repo.
+		On("Create", mock.Anything).
+		Return(0, errors.New("Some Error"))
+
+	var book = domain.Book{
+		Name:            "Ronaldo",
+		Edition:         "1",
+		PublicationYear: 2020,
+	}
+	var jsonBytes, _ = json.Marshal(book)
+	s.req = httptest.NewRequest(http.MethodPost, "/books", bytes.NewBuffer(jsonBytes))
+	s.req.Header.Set("Content-Type", "application/json")
+
+	// act
+	s.router.ServeHTTP(s.res, s.req)
+
+	// assert
+	s.Assert().Equal(http.StatusBadRequest, s.res.Code)
+}
+
+func (s *BooksApiHandlerSuite) TestPutBookShouldReturn200() {
+	// arrange
+	s.repo.
+		On("Update", mock.Anything, mock.Anything).
+		Return(nil)
+
+	var book = domain.Book{
+		Name:            "Ronaldo",
+		Edition:         "1",
+		PublicationYear: 2020,
+	}
+	var jsonBytes, _ = json.Marshal(book)
+	s.req = httptest.NewRequest(http.MethodPut, "/books/1", bytes.NewBuffer(jsonBytes))
+	s.req.Header.Set("Content-Type", "application/json")
+	vars := map[string]string{
+		"id": "1",
+	}
+
+	s.req = mux.SetURLVars(s.req, vars)
+
+	// act
+	s.router.ServeHTTP(s.res, s.req)
+
+	// assert
+	s.Assert().Equal(http.StatusOK, s.res.Code)
+}
+
+func (s *BooksApiHandlerSuite) TestPutBookShouldReturn400IfHasNoBody() {
+	// arrange
+	s.repo.
+		On("Update", mock.Anything, mock.Anything).
+		Return(nil)
+
+	s.req = httptest.NewRequest(http.MethodPut, "/books/1", nil)
+	s.req.Header.Set("Content-Type", "application/json")
+	vars := map[string]string{
+		"id": "1",
+	}
+
+	s.req = mux.SetURLVars(s.req, vars)
+
+	// act
+	s.router.ServeHTTP(s.res, s.req)
+
+	// assert
+	s.Assert().Equal(http.StatusBadRequest, s.res.Code)
+}
+
+func (s *BooksApiHandlerSuite) TestPutBookShouldReturn400IfIdIsLessThanZero() {
+	// arrange
+	s.repo.
+		On("Update", mock.Anything, mock.Anything).
+		Return(nil)
+
+	s.req = httptest.NewRequest(http.MethodPut, "/books/0", nil)
+	s.req.Header.Set("Content-Type", "application/json")
+	vars := map[string]string{
+		"id": "0",
+	}
+
+	s.req = mux.SetURLVars(s.req, vars)
+
+	// act
+	s.router.ServeHTTP(s.res, s.req)
+
+	// assert
+	s.Assert().Equal(http.StatusBadRequest, s.res.Code)
+}
+
+func (s *BooksApiHandlerSuite) TestPutBookShouldReturn400UpdateFails() {
+	// arrange
+	s.repo.
+		On("Update", mock.Anything, mock.Anything).
+		Return(errors.New(""))
+
+	var book = domain.Book{
+		Name:            "Ronaldo",
+		Edition:         "1",
+		PublicationYear: 2020,
+	}
+	var jsonBytes, _ = json.Marshal(book)
+	s.req = httptest.NewRequest(http.MethodPut, "/books/1", bytes.NewBuffer(jsonBytes))
+	s.req.Header.Set("Content-Type", "application/json")
+	vars := map[string]string{
+		"id": "1",
+	}
+
+	s.req = mux.SetURLVars(s.req, vars)
+
+	// act
+	s.router.ServeHTTP(s.res, s.req)
+
+	// assert
+	s.Assert().Equal(http.StatusBadRequest, s.res.Code)
+}
+
+func (s *BooksApiHandlerSuite) TestDeleteBookShouldReturn400IfIdIsLessThanZero() {
+	// arrange
+	s.repo.
+		On("Delete", mock.Anything).
+		Return(nil)
+
+	s.req = httptest.NewRequest(http.MethodDelete, "/books/0", nil)
+	s.req.Header.Set("Content-Type", "application/json")
+	vars := map[string]string{
+		"id": "0",
+	}
+
+	s.req = mux.SetURLVars(s.req, vars)
+
+	// act
+	s.router.ServeHTTP(s.res, s.req)
+
+	// assert
+	s.Assert().Equal(http.StatusBadRequest, s.res.Code)
+}
+
+func (s *BooksApiHandlerSuite) TestDeleteBookShouldReturn400DeleteFails() {
+	// arrange
+	s.repo.
+		On("Delete", mock.Anything).
+		Return(errors.New("Some error"))
+
+	s.req = httptest.NewRequest(http.MethodDelete, "/books/1", nil)
+	s.req.Header.Set("Content-Type", "application/json")
+	vars := map[string]string{
+		"id": "1",
+	}
+
+	s.req = mux.SetURLVars(s.req, vars)
+
+	// act
+	s.router.ServeHTTP(s.res, s.req)
+
+	// assert
+	s.Assert().Equal(http.StatusBadRequest, s.res.Code)
+}
+
+func (s *BooksApiHandlerSuite) TestDeleteBookShouldReturn200() {
+	// arrange
+	s.repo.
+		On("Delete", mock.Anything).
+		Return(nil)
+
+	s.req = httptest.NewRequest(http.MethodDelete, "/books/1", nil)
+	s.req.Header.Set("Content-Type", "application/json")
+	vars := map[string]string{
+		"id": "1",
+	}
+
+	s.req = mux.SetURLVars(s.req, vars)
+
+	// act
+	s.router.ServeHTTP(s.res, s.req)
+
+	// assert
+	s.Assert().Equal(http.StatusOK, s.res.Code)
 }
 
 func TestBooksApiHandlerSuite(t *testing.T) {

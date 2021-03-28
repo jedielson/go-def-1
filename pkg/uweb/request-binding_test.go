@@ -1,7 +1,9 @@
 package uweb
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -10,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/jedielson/bookstore/pkg/domain"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -262,6 +265,31 @@ func (s *RequestBindingHandlerSuite) TestBindGetBooksRequestAuthorQuery() {
 		request := BindGetBooksRequest(s.req)
 		s.Assert().Equal(n.expected, request.Author)
 	}
+}
+
+func (s *RequestBindingHandlerSuite) TestBindCreateBookRequestBody() {
+
+	body := domain.Book{
+		Name:            "Some name",
+		Edition:         "Some edition",
+		PublicationYear: 2020,
+	}
+	json, _ := json.Marshal(body)
+	s.req = httptest.NewRequest(http.MethodPost, "/books", bytes.NewBuffer(json))
+	s.req.Header.Set("Content-Type", "application/json")
+
+	request, err := BindCreateBookRequest(s.req)
+	s.Assert().Equal(body, request)
+	s.Assert().Nil(err)
+}
+
+func (s *RequestBindingHandlerSuite) TestBindCreateBookRequestBodyError() {
+
+	s.req = httptest.NewRequest(http.MethodPost, "/books", nil)
+
+	request, err := BindCreateBookRequest(s.req)
+	s.Assert().Equal(domain.Book{}, request)
+	s.Assert().Equal(errors.New("Invalid request payload"), err)
 }
 
 func TestBooksApiHandlerSuite(t *testing.T) {

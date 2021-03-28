@@ -34,3 +34,24 @@ func (m *BooksRepositoryMock) GetBook(id int) (domain.Book, error) {
 
 	return bb, args.Error(1)
 }
+
+func (m *BooksRepositoryMock) Create(book domain.Book) (uint, error) {
+	args := m.Called(book)
+	bb, ok := args.Get(0).(uint)
+
+	if !ok {
+		bb = 0
+	}
+
+	return bb, args.Error(1)
+}
+
+func (m *BooksRepositoryMock) Update(id int, book domain.Book) error {
+	args := m.Called(id, book)
+	return args.Error(0)
+}
+
+func (m *BooksRepositoryMock) Delete(id int) error {
+	args := m.Called(id)
+	return args.Error(0)
+}

@@ -1,11 +1,13 @@
 package uweb
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"time"
 
 	"github.com/jedielson/bookstore/pkg/database"
+	"github.com/jedielson/bookstore/pkg/domain"
 )
 
 type URLSegment int
@@ -48,6 +50,17 @@ func BindGetBooksRequest(r *http.Request) database.GetAllRequest {
 		Limit:           limit,
 		Offset:          offset,
 	}
+}
+
+func BindCreateBookRequest(r *http.Request) (domain.Book, error) {
+	var book domain.Book
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&book); err != nil {
+		return book, errors.New("Invalid request payload")
+	}
+
+	defer r.Body.Close()
+	return book, nil
 }
 
 func ValidateLimitQuery(i int) bool {

@@ -1,9 +1,6 @@
 package database
 
 import (
-	"errors"
-	"fmt"
-
 	"github.com/jedielson/bookstore/pkg/domain"
 )
 
@@ -19,6 +16,9 @@ type GetAllRequest struct {
 type BooksRepository interface {
 	GetAll(r GetAllRequest) []domain.Book
 	GetBook(id int) (domain.Book, error)
+	Create(book domain.Book) (uint, error)
+	Update(id int, book domain.Book) error
+	Delete(id int) error
 }
 
 type booksRepository struct {
@@ -32,20 +32,57 @@ func NewBooksRepository(d DBManager) BooksRepository {
 }
 
 func (i *booksRepository) GetAll(r GetAllRequest) []domain.Book {
-	return []domain.Book{
-		{
-			Name:            r.Name,
-			PublicationYear: r.PublicationYear,
-			Edition:         r.Edition,
-			Authors: []*domain.Author{
-				{
-					Name: fmt.Sprintf("%d", r.Author),
-				},
-			},
-		},
+	users := []domain.Book{}
+
+	db := i.manager.GetDB()
+
+	if len(r.Name) > 0 {
+		db.Where("name = ?", r.Name)
 	}
+
+	if len(r.Edition) > 0 {
+		db.Where("edition = ?", r.Edition)
+	}
+
+	if r.PublicationYear > 0 {
+		db.Where("publication_year = ?", r.PublicationYear)
+	}
+
+	db.Take(r.Limit)
+	db.Offset(r.Offset)
+	db.Find(&users)
+	return users
 }
 
 func (i *booksRepository) GetBook(id int) (domain.Book, error) {
-	return domain.Book{}, errors.New("Method not implemented")
+	b := domain.Book{}
+	err := i.manager.GetDB().First(&b).Error
+	return b, err
+}
+
+func (i *booksRepository) Create(b domain.Book) (uint, error) {
+	book := domain.Book{
+		Name:            b.Name,
+		Edition:         b.Edition,
+		PublicationYear: b.PublicationYear,
+	}
+
+	err := i.manager.GetDB().Create(&book).Error
+	return book.ID, err
+}
+
+func (i *booksRepository) Update(id int, b domain.Book) error {
+	book := domain.Book{}
+	i.manager.GetDB().First(&book, id)
+
+	book.Name = b.Name
+	book.Edition = b.Edition
+	book.PublicationYear = b.PublicationYear
+
+	return i.manager.GetDB().Save(&book).Error
+}
+
+func (i *booksRepository) Delete(id int) error {
+	manager := i.manager.GetDB()
+	return manager.Delete(&domain.Book{}, id).Error
 }
